@@ -33,6 +33,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/signup", "/api/login", "/api/set-password", "/api/me", "/api/chat", "/api/update", "/api/send-booking-email", "/api/send-cancellation-email", "/api/send-cancellation-otp", "/api/verify-cancellation-otp", "/api/forgot-password", "/api/reset-password").permitAll()
+                .requestMatchers("/api/signup", "/api/login", "/api/set-password", "/api/me", "/api/chat", "/api/update", "/api/forgot-password", "/api/reset-password").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth -> oauth
