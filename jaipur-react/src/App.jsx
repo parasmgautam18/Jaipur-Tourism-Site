@@ -11,6 +11,7 @@ import Contact from './pages/Contact'
 import Profile from './pages/Profile'
 import ResetPassword from './pages/ResetPassword'
 import Explorer from './pages/Explorer'
+import AdminDashboard from './pages/AdminDashboard'
 import Chatbot from './components/Chatbot'
 import './App.css'
 
@@ -80,6 +81,7 @@ function App() {
               <Route path="/contact" element={<Contact />} />
               <Route path="/profile" element={<Profile user={user} onUserChange={handleUserChange} />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/admin" element={<AdminDashboard />} />
             </Routes>
 
             <Footer />

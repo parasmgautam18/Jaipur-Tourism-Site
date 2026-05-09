@@ -130,6 +130,62 @@ function Contact() {
   const [users, setUsers] = useState(loadUsers)
   const [form, setForm] = useState({ name: '', email: '', phone: '', pkg: '', travelDate: '' })
   const [editingId, setEditingId] = useState(null)
+
+  useEffect(() => {
+    const localUserRaw = localStorage.getItem('user');
+    if (!localUserRaw) return;
+    
+    try {
+      const localUser = JSON.parse(localUserRaw);
+      if (localUser && localUser.email) {
+        const userEmail = localUser.email.toLowerCase().trim();
+        fetch(`${API_BASE_URL}/my-bookings?email=${userEmail}`, {
+          credentials: 'include'
+        })
+        .then(res => res.ok ? res.json() : Promise.reject("Fetch failed"))
+        .then(data => {
+          if (Array.isArray(data)) {
+            const now = new Date();
+            // 1. Filter for valid future bookings and sort by proximity
+            const futureBookings = data
+              .filter(b => new Date(b.travelDate) > now)
+              .sort((a, b) => new Date(a.travelDate) - new Date(b.travelDate));
+
+            // 2. Map backend structure to frontend structure
+            const syncedUsers = futureBookings.map(db => {
+              const pkg = PACKAGES.find(p => p.title === db.packageName);
+              let pkgValue = pkg ? pkg.id : '';
+              
+              // Handle custom packages that don't have a static ID in PACKAGES
+              if (!pkgValue && db.packageName && db.packageName.includes('Custom')) {
+                pkgValue = 'custom-' + db.id;
+              }
+
+              return {
+                id: String(db.id),
+                name: db.userName,
+                email: db.userEmail,
+                phone: db.userPhone,
+                packageName: db.packageName,
+                packageValue: pkgValue,
+                price: db.packagePrice,
+                startDate: db.travelDate,
+                bookingDate: db.bookingDate
+              };
+            });
+
+            // 3. Synchronize local state and storage
+            setUsers(syncedUsers);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(syncedUsers));
+            console.log(`Synced ${syncedUsers.length} upcoming bookings from server.`);
+          }
+        })
+        .catch(err => console.warn("Background sync skipped:", err));
+      }
+    } catch (e) {
+      console.error("Sync initialization failed:", e);
+    }
+  }, []);
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -245,12 +301,13 @@ function Contact() {
     const startDate = travelDate ? new Date(travelDate).toISOString() : (pkgData ? pkgData.startDate : new Date().toISOString())
 
     let updated
+    let tempId = "";
     if (editingId) {
       updated = users.map(u => u.id === editingId ? { ...u, name, email, phone, packageValue: pkg, packageName, price, startDate } : u)
       setEditingId(null)
     } else {
-      const id = String(Date.now()) + Math.floor(Math.random() * 999)
-      updated = [{ id, name, email, phone, packageValue: pkg, packageName, price, startDate, bookingDate: new Date().toISOString() }, ...users]
+      tempId = String(Date.now()) + Math.floor(Math.random() * 999)
+      updated = [{ id: tempId, name, email, phone, packageValue: pkg, packageName, price, startDate, bookingDate: new Date().toISOString() }, ...users]
     }
 
     saveUsers(updated)
@@ -273,7 +330,21 @@ function Contact() {
       
       if (!dbRes.ok) throw new Error("Server high demand");
       
-      console.log('Booking saved to database successfully');
+      const result = await dbRes.json();
+      const savedBooking = result.booking;
+      console.log('Booking saved to database successfully', savedBooking);
+
+      // Update local state with the REAL database ID
+      if (savedBooking && savedBooking.id) {
+         setUsers(prev => {
+            const updatedWithId = prev.map(u => {
+               if (u.id === tempId) return { ...u, id: String(savedBooking.id) };
+               return u;
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedWithId));
+            return updatedWithId;
+         });
+      }
       
       // 2. Only if DB save succeeded, try to send email
       try {

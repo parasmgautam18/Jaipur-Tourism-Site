@@ -18,6 +18,7 @@ public class Booking {
     private String packagePrice;
     private String travelDate;
     private LocalDateTime bookingDate;
+    private boolean isContacted = false;
 
     public Booking() {
         this.bookingDate = LocalDateTime.now();
@@ -47,4 +48,7 @@ public class Booking {
 
     public LocalDateTime getBookingDate() { return bookingDate; }
     public void setBookingDate(LocalDateTime bookingDate) { this.bookingDate = bookingDate; }
+
+    public boolean isContacted() { return isContacted; }
+    public void setContacted(boolean contacted) { isContacted = contacted; }
 }

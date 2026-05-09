@@ -21,6 +21,9 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final ClientRegistrationRepository clientRegistrationRepository;
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
     public SecurityConfig(CustomOAuth2UserService customOAuth2UserService, ClientRegistrationRepository clientRegistrationRepository) {
         this.customOAuth2UserService = customOAuth2UserService;
         this.clientRegistrationRepository = clientRegistrationRepository;
@@ -31,23 +34,34 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .exceptionHandling(e -> e
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(401);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"Unauthorized\"}");
+                })
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/signup", "/api/login", "/api/set-password", "/api/me", "/api/chat", "/api/update", 
                                "/api/send-booking-email", "/api/send-cancellation-email", "/api/send-cancellation-otp", 
                                "/api/verify-cancellation-otp", "/api/forgot-password", "/api/reset-password",
-                               "/api/save-booking", "/api/my-bookings").permitAll()
+                               "/api/save-booking", "/api/my-bookings", "/api/login/oauth2/code/**", "/oauth2/authorization/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth -> oauth
                 .authorizationEndpoint(authorization -> authorization
                     .authorizationRequestResolver(authorizationRequestResolver())
                 )
-                .defaultSuccessUrl("/profile", true)
+                .redirectionEndpoint(redirection -> redirection
+                    .baseUri("/api/login/oauth2/code/*")
+                )
+                .successHandler((request, response, authentication) -> {
+                    response.sendRedirect(frontendUrl);
+                })
                 .userInfoEndpoint(userInfo -> userInfo
                     .userService(customOAuth2UserService)
                 )
             );
-
 
         return http.build();
     }
@@ -66,11 +80,10 @@ public class SecurityConfig {
         return resolver;
     }
 
-
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        // Aggressive CORS Configuration
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:5173", 
             "http://localhost:5174", 
@@ -78,9 +91,8 @@ public class SecurityConfig {
             "http://35.154.74.197.nip.io",
             "https://35.154.74.197.nip.io"
         ));
-
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
+        configuration.setAllowedHeaders(Arrays.asList("*")); // Allow all headers
         configuration.setAllowCredentials(true);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

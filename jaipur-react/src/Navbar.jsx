@@ -15,7 +15,7 @@ function Navbar({ user }) {
                 style={{ borderRadius: '50%', margin: '0 12px 6px 0px' }}
                 src="/favicon.jpeg"
                 alt="JT"
-                width="37"
+                width="32"
               />
               <h1>JAIPUR-TOUR</h1>
             </Link>
@@ -43,26 +43,31 @@ function Navbar({ user }) {
           <li>
             <Link to="/contact" className={location.pathname === '/contact' ? 'active-nav' : ''}>Packages</Link>
           </li>
-          <li style={{ marginLeft: '10px' }}>
-            {user ? (
-              <Link
-                to="/profile"
-                className="nav-profile-circle"
-                title={`${user.name}'s Profile`}
-              >
-                <img
-                  src={user.photo || user.picture || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}
-                  alt="Profile"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </Link>
-            ) : (
-              <Link to="/profile" className="nav-login-btn">
-                Log In
-              </Link>
-            )}
-          </li>
+          {user && user.email === 'jaipur.tourism.official@gmail.com' && (
+            <li>
+              <Link to="/admin" className={location.pathname === '/admin' ? 'active-nav' : ''}>Admin Control</Link>
+            </li>
+          )}
         </ul>
+
+        <div className="nav-profile-area">
+          {user ? (
+            <Link
+              to="/profile"
+              className="nav-profile-circle"
+              title={`${user.name}'s Profile`}
+            >
+              <img
+                src={user.photo || user.picture || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}
+                alt="Profile"
+              />
+            </Link>
+          ) : (
+            <Link to="/profile" className="nav-login-btn">
+              Log In
+            </Link>
+          )}
+        </div>
 
         <div className={active ? 'hamburger hamburger-active' : 'hamburger'} onClick={() => setActive(!active)}>
           <div className="line"></div>

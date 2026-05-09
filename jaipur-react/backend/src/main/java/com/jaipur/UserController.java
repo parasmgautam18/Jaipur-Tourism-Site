@@ -59,7 +59,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> credentials) {
+    public Map<String, Object> login(@RequestBody Map<String, String> credentials, jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) {
 
         String email = credentials.get("email");
         String password = credentials.get("password");
@@ -75,6 +75,20 @@ public class UserController {
 
             if (user.getPassword() != null && passwordEncoder.matches(password, user.getPassword())) {
                 user.setPassword(null);
+                
+                // Explicitly establish a Spring Security session for manual logins
+                org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth = 
+                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        user.getEmail(), null, java.util.Collections.singletonList(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER")));
+                
+                org.springframework.security.core.context.SecurityContext context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+                context.setAuthentication(auth);
+                org.springframework.security.core.context.SecurityContextHolder.setContext(context);
+                
+                org.springframework.security.web.context.SecurityContextRepository securityContextRepository =
+                    new org.springframework.security.web.context.HttpSessionSecurityContextRepository();
+                securityContextRepository.saveContext(context, request, response);
+
                 return Map.of("message", "Login successful", "user", user);
             }
         }
@@ -262,6 +276,100 @@ public class UserController {
 
     @GetMapping("/my-bookings")
     public List<Booking> getMyBookings(@RequestParam String email) {
-        return bookingRepository.findByUserEmail(email);
+        return bookingRepository.findByUserEmailIgnoreCase(email.toLowerCase().trim());
+    }
+
+    @GetMapping("/admin/bookings")
+    public Object getAdminBookings(@RequestParam String date, @AuthenticationPrincipal Object principal) {
+        if (principal == null) {
+            return org.springframework.http.ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
+        }
+
+        String email = null;
+        if (principal instanceof OAuth2User) {
+            email = ((OAuth2User) principal).getAttribute("email");
+        } else if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+            email = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+        } else if (principal instanceof String) {
+            email = (String) principal;
+        }
+
+        if (email == null || !"jaipur.tourism.official@gmail.com".equalsIgnoreCase(email.trim())) {
+            return org.springframework.http.ResponseEntity.status(403).body(Map.of("error", "Forbidden: Admins only"));
+        }
+
+        return bookingRepository.findByTravelDate(date);
+    }
+
+    @PatchMapping("/admin/bookings/{id}/contact")
+    public Object toggleContactStatus(@PathVariable Long id, @AuthenticationPrincipal Object principal) {
+        if (principal == null) {
+            return org.springframework.http.ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
+        }
+
+        String email = null;
+        if (principal instanceof OAuth2User) {
+            email = ((OAuth2User) principal).getAttribute("email");
+        } else if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+            email = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+        } else if (principal instanceof String) {
+            email = (String) principal;
+        }
+
+        if (email == null || !"jaipur.tourism.official@gmail.com".equalsIgnoreCase(email.trim())) {
+            return org.springframework.http.ResponseEntity.status(403).body(Map.of("error", "Forbidden: Admins only"));
+        }
+
+        Optional<Booking> bookingOpt = bookingRepository.findById(id);
+        if (bookingOpt.isPresent()) {
+            Booking booking = bookingOpt.get();
+            booking.setContacted(!booking.isContacted());
+            bookingRepository.save(booking);
+            return Map.of("message", "Contact status updated", "isContacted", booking.isContacted());
+        }
+        return org.springframework.http.ResponseEntity.status(404).body(Map.of("error", "Booking not found"));
+    }
+
+    @DeleteMapping("/admin/bookings/{id}")
+    public Object deleteBooking(@PathVariable Long id, @AuthenticationPrincipal Object principal) {
+        if (principal == null) {
+            return org.springframework.http.ResponseEntity.status(401).body(Map.of("error", "Not logged in"));
+        }
+
+        String email = null;
+        if (principal instanceof OAuth2User) {
+            email = ((OAuth2User) principal).getAttribute("email");
+        } else if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+            email = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+        } else if (principal instanceof String) {
+            email = (String) principal;
+        }
+
+        if (email == null || !"jaipur.tourism.official@gmail.com".equalsIgnoreCase(email.trim())) {
+            return org.springframework.http.ResponseEntity.status(403).body(Map.of("error", "Forbidden: Admins only"));
+        }
+
+        java.util.Optional<Booking> bookingOpt = bookingRepository.findById(id);
+        if (bookingOpt.isPresent()) {
+            Booking booking = bookingOpt.get();
+            
+            // Send cancellation email before deleting
+            try {
+                com.jaipur.dto.BookingRequest cancelReq = new com.jaipur.dto.BookingRequest();
+                cancelReq.setName(booking.getUserName());
+                cancelReq.setEmail(booking.getUserEmail());
+                cancelReq.setPhone(booking.getUserPhone());
+                cancelReq.setPackageName(booking.getPackageName());
+                cancelReq.setStartDate(booking.getTravelDate());
+                
+                emailService.sendCancellationConfirmation(cancelReq);
+            } catch (Exception e) {
+                System.err.println("Failed to send cancellation email for booking " + id + ": " + e.getMessage());
+            }
+
+            bookingRepository.deleteById(id);
+            return Map.of("message", "Booking deleted successfully and cancellation email sent.");
+        }
+        return org.springframework.http.ResponseEntity.status(404).body(Map.of("error", "Booking not found"));
     }
 }

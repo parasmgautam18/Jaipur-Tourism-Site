@@ -15,10 +15,10 @@ body {
 
 nav {
   background-color: #E9CBA7;
-  padding: 10px 5%;
+  padding: 10px 1.5%;
   display: flex;
   width: 100%;
-  justify-content: space-between;
+  justify-content: flex-start; /* Align logo to left */
   align-items: center;
   box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px,
     rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
@@ -26,8 +26,7 @@ nav {
   position: sticky;
   top: 0;
   box-sizing: border-box;
-  overflow-x: auto; /* Allow horizontal scroll if links are too wide at high zoom */
-  white-space: nowrap; /* Keep links in one line or allow scrolling */
+  gap: 15px; /* Spacing between main sections */
 }
 
 nav .logo {
@@ -38,19 +37,19 @@ nav .logo {
 nav .logo-area {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 8px;
 }
 
 .nav-map-pill {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   background: rgba(161, 103, 63, 0.1);
   color: #A1673F;
   text-decoration: none;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 20px;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 700;
   border: 1px solid rgba(161, 103, 63, 0.2);
   transition: all 0.3s ease;
@@ -69,35 +68,45 @@ nav .logo-area {
 }
 
 nav .logo h1 {
-  font-size: 2rem;
+  font-size: 1.3rem;
   background: linear-gradient(to right, #2e2ec4 0%, #912727 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;
+  letter-spacing: -0.5px;
 }
 
 nav ul {
   list-style: none;
   display: flex;
-  gap: 15px;
+  gap: 10px;
   margin: 0;
   padding: 0;
   align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.nav-profile-area {
+  display: flex;
+  align-items: center;
+  margin-left: auto; /* Push to far right */
 }
 
 nav ul li a {
   text-decoration: none;
   color: #3C2A21;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 95%;
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 6px 10px;
+  padding: 5px 12px;
   border-radius: 20px;
   background-color: #FFF6EF;
   border: 1px solid #A1673F;
   transition: all 0.3s ease;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .active-nav {
@@ -117,8 +126,8 @@ nav ul li a:hover:not(.active-nav) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid #A1673F;
