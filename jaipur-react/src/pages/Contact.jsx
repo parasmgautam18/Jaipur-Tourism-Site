@@ -590,12 +590,12 @@ function Contact() {
                 <div className="trip-card" key={u.id}>
                   <div className="trip-info">
                     <h4>{u.packageName}</h4>
-                    <p><i className="fa-regular fa-calendar"></i> Starts on: {new Date(pkgData.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                    <p><i className="fa-regular fa-calendar"></i> Starts on: {new Date(u.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
                     <p style={{fontSize: '0.9em', color: '#888'}}>Booked under: {u.name} ({u.email})</p>
                   </div>
                   <div>
                     <p style={{ margin: '0 0 5px 0', fontSize: '0.9rem', fontWeight: 'bold', color: '#A1673F' }}>Starts in:</p>
-                    <CountdownTimer targetDate={pkgData.startDate} />
+                    <CountdownTimer targetDate={u.startDate} />
                     <button onClick={() => startCancel(u)} style={{ marginTop: '10px', width: '100%', padding: '8px', background: '#ff4d4d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Cancel Trip</button>
                   </div>
                 </div>
