@@ -19,6 +19,8 @@ public class Booking {
     private String travelDate;
     private LocalDateTime bookingDate;
     private boolean isContacted = false;
+    private int numberOfPersons = 1;
+    private double totalAmount;
 
     public Booking() {
         this.bookingDate = LocalDateTime.now();
@@ -51,4 +53,10 @@ public class Booking {
 
     public boolean isContacted() { return isContacted; }
     public void setContacted(boolean contacted) { isContacted = contacted; }
+
+    public int getNumberOfPersons() { return numberOfPersons; }
+    public void setNumberOfPersons(int numberOfPersons) { this.numberOfPersons = numberOfPersons; }
+
+    public double getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(double totalAmount) { this.totalAmount = totalAmount; }
 }

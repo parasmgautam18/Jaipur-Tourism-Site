@@ -121,7 +121,11 @@ function Contact() {
       
     fetch(`${API_BASE_URL}/me`, { credentials: 'include' })
       .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data && data.user && data.user.email === 'jaipur.tourism.official@gmail.com') setIsAdmin(true); })
+      .then(data => { 
+        const rawEmail = data?.user?.email || data?.email;
+        const email = rawEmail?.toLowerCase().trim();
+        if (email === 'jaipur.tourism.official@gmail.com') setIsAdmin(true);
+      })
       .catch(e => console.error(e));
   }, []);
 
@@ -194,7 +198,7 @@ function Contact() {
   };
 
   const [users, setUsers] = useState(loadUsers)
-  const [form, setForm] = useState({ name: '', email: '', phone: '', pkg: '', travelDate: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', pkg: '', travelDate: '', numberOfPersons: 1 })
   const [editingId, setEditingId] = useState(null)
 
   useEffect(() => {
@@ -328,7 +332,7 @@ function Contact() {
     setPaymentSuccess(false)
     setIsProcessing(false)
     if (!editingId) {
-      setForm({ name: '', email: '', phone: '', pkg: '', travelDate: '' })
+      setForm({ name: '', email: '', phone: '', pkg: '', travelDate: '', numberOfPersons: 1 })
     }
   }
 
@@ -360,11 +364,14 @@ function Contact() {
   }
 
   async function finalizeBooking() {
-    const { name, email, phone, pkg, travelDate } = form
+    const { name, email, phone, pkg, travelDate, numberOfPersons } = form
     const pkgData = selectedPackage || PACKAGES.find(p => p.id === pkg)
     const packageName = pkgData ? pkgData.title : pkg
     const price = pkgData ? pkgData.price : 'Custom'
     const startDate = travelDate ? new Date(travelDate).toISOString() : (pkgData ? pkgData.startDate : new Date().toISOString())
+    
+    const priceNum = typeof price === 'string' ? parseFloat(price.replace(/[^0-9.-]+/g,"")) || 0 : price;
+    const calculatedTotalAmount = priceNum * (numberOfPersons || 1);
 
     let updated
     let tempId = "";
@@ -390,7 +397,9 @@ function Contact() {
           userPhone: phone,
           packageName: packageName,
           packagePrice: price,
-          travelDate: startDate
+          travelDate: startDate,
+          numberOfPersons: numberOfPersons || 1,
+          totalAmount: calculatedTotalAmount
         })
       });
       
@@ -438,7 +447,7 @@ function Contact() {
   }
 
   function startEdit(u) {
-    setForm({ name: u.name, email: u.email, phone: u.phone, pkg: u.packageValue || '', travelDate: u.startDate ? u.startDate.split('T')[0] : '' })
+    setForm({ name: u.name, email: u.email, phone: u.phone, pkg: u.packageValue || '', travelDate: u.startDate ? u.startDate.split('T')[0] : '', numberOfPersons: u.numberOfPersons || 1 })
     setEditingId(u.id)
     
     let pkgData = PACKAGES.find(p => p.id === u.packageValue)
@@ -541,6 +550,16 @@ function Contact() {
 
   return (
     <>
+      <style>{`
+        .headcount-input::-webkit-outer-spin-button,
+        .headcount-input::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        .headcount-input[type=number] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
       <Carousel 
         title="Discover Royal Jaipur" 
         subtitle="Choose from our exclusive, hand-picked tourism packages" 
@@ -808,7 +827,7 @@ function Contact() {
                 </div>
                 
                 <button type="submit" className="pay-btn" disabled={isProcessing}>
-                  {isProcessing ? 'Processing Payment...' : `Pay ${selectedPackage.price}`}
+                  {isProcessing ? 'Processing Payment...' : `Pay ₹${(parseFloat(String(selectedPackage.price).replace(/[^0-9.-]+/g,"")) || 0) * (form.numberOfPersons || 1)}`}
                 </button>
                 <button type="button" onClick={() => setPaymentStep(false)} style={{ background: '#f0f0f0', color: '#333' }}>Go Back</button>
               </form>
@@ -817,6 +836,31 @@ function Contact() {
                 <input name="name" type="text" placeholder="Full Name" required value={form.name} onChange={handleChange} />
                 <input name="email" type="email" placeholder="Email Address" required value={form.email} onChange={handleChange} />
                 <input name="phone" type="tel" placeholder="Phone Number" required value={form.phone} onChange={handleChange} />
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', fontSize: '0.9rem', color: '#665', marginBottom: '5px', textAlign: 'left' }}>Number of Persons</label>
+                  <div style={{ display: 'flex', alignItems: 'center', height: '48px', width: '100%', border: '1px solid #A1673F', borderRadius: '8px', overflow: 'hidden', background: '#FFF6EF', boxSizing: 'border-box' }}>
+                    <button 
+                      type="button" 
+                      onClick={() => setForm({...form, numberOfPersons: Math.max(1, (form.numberOfPersons || 1) - 1)})} 
+                      style={{ height: '100%', width: '45px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: '#A1673F', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0, fontWeight: 'bold' }}
+                    >-</button>
+                    <input 
+                      name="numberOfPersons" 
+                      type="number" 
+                      min="1" 
+                      value={form.numberOfPersons || 1} 
+                      onChange={handleChange} 
+                      className="headcount-input"
+                      style={{ height: '100%', flex: 1, textAlign: 'center', border: 'none', margin: 0, borderRadius: 0, fontSize: '1rem', background: 'transparent', color: '#4A372E', outline: 'none', padding: 0 }} 
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setForm({...form, numberOfPersons: (form.numberOfPersons || 1) + 1})} 
+                      style={{ height: '100%', width: '45px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: '#A1673F', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0, fontWeight: 'bold' }}
+                    >+</button>
+                  </div>
+                </div>
                 
                 <div style={{ marginBottom: '10px' }}>
                   <label style={{ display: 'block', fontSize: '0.8rem', color: '#665', marginBottom: '5px', textAlign: 'left' }}>Travel Date</label>
@@ -833,7 +877,14 @@ function Contact() {
                   )}
                 </select>
                 
-                <button type="submit" style={{ marginTop: '15px' }}>{editingId ? 'Proceed to Payment' : 'Proceed to Payment'}</button>
+                {selectedPackage && (
+                  <div style={{ marginTop: '10px', padding: '12px 15px', background: '#FFF6EF', borderRadius: '8px', border: '1px solid #A1673F', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '1rem', color: '#4A372E', fontWeight: 'bold' }}>Total Amount:</span>
+                    <span style={{ fontSize: '1.2rem', color: '#A1673F', fontWeight: 'bold' }}>₹{(parseFloat(String(selectedPackage.price).replace(/[^0-9.-]+/g,"")) || 0) * (form.numberOfPersons || 1)}</span>
+                  </div>
+                )}
+                
+                <button type="submit" style={{ marginTop: '5px' }}>{editingId ? 'Proceed to Payment' : 'Proceed to Payment'}</button>
               </form>
             )}
           </div>
